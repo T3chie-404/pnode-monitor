@@ -5,6 +5,10 @@ import schedule
 from datetime import datetime
 import os
 from typing import Set, Dict, List
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 class PNodeMonitor:
     def __init__(self, webhook_url: str, check_interval_hours: int):
@@ -37,16 +41,50 @@ class PNodeMonitor:
         except Exception as e:
             print(f"Error saving state: {e}")
 
-    def get_current_nodes(self) -> Set[str]:
-        """Fetch current nodes from the API."""
-        try:
-            response = requests.get(self.api_url)
-            response.raise_for_status()
-            data = response.json()
-            return set(data['pods'])
-        except Exception as e:
-            print(f"Error fetching nodes: {e}")
+    def get_nodes_with_retry(self, retries: int = 3, delay: int = 5) -> Set[str]:
+        """Fetch current nodes from the API with retries and verification."""
+        all_results = []
+        
+        # Make multiple API calls
+        for attempt in range(retries):
+            try:
+                response = requests.get(self.api_url, timeout=10)
+                response.raise_for_status()
+                nodes = set(response.json()['pods'])
+                all_results.append(nodes)
+                print(f"API call {attempt + 1}: Found {len(nodes)} nodes")
+                
+                if attempt < retries - 1:  # Don't sleep on the last attempt
+                    time.sleep(delay)
+                    
+            except Exception as e:
+                print(f"Error in API call {attempt + 1}: {e}")
+                if attempt < retries - 1:  # Don't sleep on the last attempt
+                    time.sleep(delay)
+                continue
+        
+        if not all_results:
+            print("All API calls failed")
             return set()
+        
+        # Find nodes that appear in the majority of results
+        if len(all_results) == 1:
+            return all_results[0]
+        
+        # Convert all sets to a list of sets for intersection
+        node_sets = list(all_results)
+        
+        # Find nodes that appear in at least 2 results
+        consistent_nodes = set()
+        all_seen_nodes = set().union(*node_sets)
+        
+        for node in all_seen_nodes:
+            appearances = sum(1 for node_set in node_sets if node in node_set)
+            if appearances >= len(node_sets) // 2 + 1:  # Majority of results
+                consistent_nodes.add(node)
+        
+        print(f"Found {len(consistent_nodes)} consistent nodes across {len(all_results)} API calls")
+        return consistent_nodes
 
     def analyze_changes(self, current_nodes: Set[str]) -> Dict:
         """Analyze changes between current and previous node sets."""
@@ -109,8 +147,9 @@ class PNodeMonitor:
 
     def run_check(self):
         """Run a single check of the network status."""
-        current_nodes = self.get_current_nodes()
+        current_nodes = self.get_nodes_with_retry()
         if not current_nodes:
+            print("No valid node data obtained, skipping update")
             return
 
         stats = self.analyze_changes(current_nodes)
