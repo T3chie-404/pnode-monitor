@@ -22,18 +22,22 @@ This application monitors the Xandeum devnet pNode network and sends status upda
 pip install -r requirements.txt
 ```
 
-2. Set up your Google Chat webhook:
-   - Create a webhook in your Google Chat space
-   - Set the webhook URL as an environment variable:
-```bash
-export GOOGLE_CHAT_WEBHOOK='your_webhook_url_here'
-```
+2. Set up environment variables:
+   - Copy `.env.example` to `.env`:
+   ```bash
+   cp .env.example .env
+   ```
+   - Edit `.env` and add your Google Chat webhook URL:
+   ```bash
+   vim .env  # or use your preferred editor
+   ```
+   - The `.env` file should contain:
+   ```
+   GOOGLE_CHAT_WEBHOOK=your_webhook_url_here
+   CHECK_INTERVAL_HOURS=2  # Change this number to adjust check frequency
+   ```
 
-3. (Optional) Configure check interval:
-   - Set the CHECK_INTERVAL_HOURS environment variable (default is 2 hours):
-```bash
-export CHECK_INTERVAL_HOURS=2  # Change this number to adjust the interval
-```
+   Note: The `.env` file is ignored by Git to keep your webhook URL secure.
 
 ## Running the Application
 
