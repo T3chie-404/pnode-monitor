@@ -13,7 +13,7 @@ This application monitors the Xandeum devnet pNode network and sends status upda
 - Tracks node changes between runs
 - Persists state between runs in `pnode_state.json`
 - **Sends a critical alert if the API reports zero nodes, indicating a potential network-wide issue.**
-- Error handling and logging
+- Error handling and **timestamped** logging
 - Limits output to show first 5 nodes in each category to avoid message clutter
 
 ## Setup
@@ -46,16 +46,16 @@ There are two ways to run the application:
 
 ### 1. As a Background Service (Recommended)
 
-Run the script in the background with nohup:
+Run the script in the background using `nohup` and Python's unbuffered (`-u`) flag. The `-u` flag is important as it ensures log messages are written immediately.
 ```bash
 cd /root/pnode_notifier
-GOOGLE_CHAT_WEBHOOK='your_webhook_url_here' nohup python pnode_monitor.py > pnode_monitor.log 2>&1 &
+nohup python -u pnode_monitor.py > pnode_monitor.log 2>&1 &
 ```
 
 This will:
 - Run the script in the background
 - Continue running after terminal closes
-- Log output to `pnode_monitor.log`
+- Log all output with timestamps to `pnode_monitor.log`
 
 To stop the service:
 ```bash
@@ -71,7 +71,7 @@ tail -f pnode_monitor.log
 
 For testing or debugging, run directly:
 ```bash
-python pnode_monitor.py
+python -u pnode_monitor.py
 ```
 
 ## What the Application Does
@@ -131,7 +131,7 @@ The application handles various error cases:
 - Webhook delivery failures
 - State file read/write errors
 
-Errors are logged to `pnode_monitor.log`
+Errors are logged with timestamps to `pnode_monitor.log`.
 
 ## State Persistence
 
