@@ -12,6 +12,7 @@ This application monitors the Xandeum devnet pNode network and sends status upda
 - Sends formatted messages to Google Chat
 - Tracks node changes between runs
 - Persists state between runs in `pnode_state.json`
+- **Sends a critical alert if the API reports zero nodes, indicating a potential network-wide issue.**
 - Error handling and logging
 - Limits output to show first 5 nodes in each category to avoid message clutter
 
@@ -80,11 +81,19 @@ python pnode_monitor.py
    - Establishes baseline for future comparisons
    - Sends initial status report
 
-2. Subsequent Runs (every 6 hours):
+2. Subsequent Runs (every 2 hours):
    - Checks for new nodes that joined
    - Identifies nodes that went offline
    - Sends detailed status report
    - Updates state file
+
+## Critical Alerts
+
+The script includes a critical alert to handle a specific, high-impact scenario:
+
+- **API Reports Zero Nodes**: If the monitoring API reports that there are zero active nodes (down from a previously non-zero count), the script will send a special `CRITICAL ALERT` message.
+  - This indicates a potential network-wide outage or a failure of the API itself.
+  - To ensure this critical alert is not missed, the script will *not* save its state after sending the alert. It will continue to send the critical alert on every check until the issue is resolved and the API reports a non-zero number of nodes again.
 
 ## Sample Output
 
@@ -100,14 +109,18 @@ python pnode_monitor.py
 🆕 New Nodes (10) 🆕
 • node1.example.com:5000
 • node2.example.com:5000
-• node3.example.com:5000
-• node4.example.com:5000
-• node5.example.com:5000
-• ... and 5 more
+• ... and 8 more
 
 ⚠️ Offline Nodes (2) ⚠️
 • offline1.example.com:5000
 • offline2.example.com:5000
+
+🚨 CRITICAL ALERT: pNode API Failure - 2024-01-02 12:00:00
+
+• The API is reporting ZERO active nodes.
+• Previously, there were 31 nodes.
+• This could indicate a major network outage or API failure.
+• *Action required: Please investigate immediately.*
 ```
 
 ## Error Handling
@@ -129,4 +142,4 @@ The application maintains state in `pnode_state.json` to:
 
 ## Note
 
-While the background service will continue running if you close your terminal, it will not automatically restart after system reboots. If you need that functionality, consider setting up a proper systemd service. 
+While the background service will continue running if you close your terminal, it will not automatically restart after system reboots. If you need that functionality, consider setting up a proper systemd service.
